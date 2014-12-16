@@ -1,0 +1,56 @@
+#!/bin/sh
+#
+# post-receive hook for the server side repository.
+#
+# when new code is pushed to the branch the server currently
+# has checked out, then this script will reset the working
+# directory to match the repository state, and run the
+# deploy/post-deploy script, if one exists
+#
+now=$(date "+%Y%m%d.%H%M%S")
+head=$(git symbolic-ref HEAD)
+
+if [ "$GIT_DIR" = "." ]
+then
+    cd ..
+    unset GIT_DIR
+fi
+
+while read oldrev newrev refname
+do
+    # if the currently checked out branch was updated,
+    # then reset the working copy to it and tag it with the current date
+    if [ "$refname" = "$head" ]
+    then
+        {
+            short_refname=${refname##refs/heads/}
+            tag=deploy.${short_refname}.${now}
+            old_pretty=$(git describe --tag --always ${oldrev})
+
+            echo "============================="
+            echo "Git Deploy Started: $(date)"
+            echo "============================="
+
+            echo "**** Previous repository tag: ${old_pretty}"
+
+            echo "**** Creating deploy tag $tag"
+            git tag $tag
+
+            echo "**** Updating working copy"
+            umask 002
+            git reset --hard
+
+            if [ -x deploy/post-deploy ]
+            then
+                echo "**** Running post deploy"
+                ./deploy/post-deploy
+            fi
+
+            echo "============================="
+            echo "Git Deploy Done: $(date)"
+            echo "============================="
+            echo
+
+        } | tee -a deploy/deploy.log
+    fi
+done
