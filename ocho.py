@@ -93,9 +93,9 @@ def main():
         except Exception, e:
             err("PostUpdate Exception: %s" % e)
         out('')
+        count += 1
         if count == limit:
             exit(0)
-        count += 1
 
     exit(0)
 
