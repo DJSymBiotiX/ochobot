@@ -15,7 +15,6 @@ class Twitter:
         api = None
         try:
             api = twitter_api.Api(
- #               base_url='https://api.twitter.com/1.1',
                 consumer_key = self.configs['Twitter']['ck'],
                 consumer_secret = self.configs['Twitter']['cs'],
                 access_token_key = self.configs['Twitter']['atk'],
@@ -54,7 +53,7 @@ def main():
 
     out("Checking For Ochos....")
 
-    limit = 2
+    limit = 1
 
     t = Twitter(args.configPath)
     eight = t.api.GetSearch(term='Eight', count=10, result_type='recent',
