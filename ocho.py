@@ -75,6 +75,10 @@ def main():
         if filter_search(text, '8', blacklist) is not None:
             matches.append(x)
 
+    out("Whats the limit?")
+    out(t.api.GetRateLimitStatus())
+    out('')
+
     count = 0
     for x in matches:
         text = x.AsDict()['text']
