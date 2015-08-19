@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from libocho.Twitter import Twitter
+from libocho.PSQL import PSQL
 from libocho.Util import (
     out,
     err
@@ -14,8 +15,15 @@ def main():
 
     limit = 1
 
-    t = Twitter(args.configPath)
+    #t = Twitter(args.configPath)
+    p = PSQL(args.configPath)
+    session = p.session
 
+    x = session.execute('SELECT * FROM followers');
+    for row in x:
+        print row
+
+    exit(0)
     try:
         eight = t.api.GetSearch(
             term='Eight',
@@ -90,7 +98,7 @@ def parse_args():
 
     parser.add_argument(
         'configPath',
-        type=argparse.FileType('rb'),
+        type=str,
         help="Path to config file"
     )
 

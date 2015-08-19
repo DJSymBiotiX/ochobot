@@ -10,8 +10,8 @@ from sys import exit
 class Twitter:
 
 
-    def __init__(self, configfp):
-        self.configs = self.__config_reader(configfp)
+    def __init__(self, config_path):
+        self.configs = self.__config_reader(config_path)
         self.api = self.__authenticate_to_twitter()
 
 
@@ -31,13 +31,14 @@ class Twitter:
         return api
 
 
-    def __config_reader(self, configfp):
+    def __config_reader(self, config_path):
         import ConfigParser
         config = ConfigParser.ConfigParser()
         result = {}
 
         try:
-            config.readfp(configfp)
+
+            config.read(config_path)
         except Exception as e:
             err("[Twitter] Read Config Error: %s" % e)
             exit(1)

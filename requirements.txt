@@ -1,5 +1,6 @@
-python-twitter>=2.0
-pyopenssl>=0.13
 ndg-httpsclienti>=0.4.0
 pyasn1>=0.1.8
+pyopenssl>=0.13
+python-twitter>=2.0
+SQLAlchemy>=1.0.8
 urllib3>=1.11

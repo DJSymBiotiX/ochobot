@@ -115,7 +115,7 @@ def parse_args():
 
     parser.add_argument(
         'configPath',
-        type=argparse.FileType('rb'),
+        type=str,
         help="Path to config file"
     )
 
