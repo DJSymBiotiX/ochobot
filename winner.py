@@ -23,12 +23,6 @@ def main():
             result_type='recent',
             lang='en'
         )
-        ocho = t.api.GetSearch(
-            term='8',
-            count=10,
-            result_type='recent',
-            lang='en'
-        )
     except Exception as e:
         err("[Main] Search Failure: %s" % e)
         eight = []
@@ -43,30 +37,11 @@ def main():
         ]
         if filter_search(text, 'eight', blacklist) is not None:
             matches.append(x)
-    for x in ocho:
-        text = x.AsDict()['text']
-        blacklist = ['0', '1', '2', '3', '4', '5', '6', '7', '9']
-        if filter_search(text, '8', blacklist) is not None:
-            matches.append(x)
 
     count = 0
     for x in matches:
-        text = x.AsDict()['text']
-        status_id = x.id
-        user_id = x.user.AsDict()['id']
-        screen_name = x.user.AsDict()['screen_name']
-
-        out("That's Ocho!")
-        out(text)
-
-        try:
-            t.api.PostUpdate(
-                "@%s That's Ocho!" % screen_name,
-                in_reply_to_status_id=status_id
-            )
-        except Exception, e:
-            err("PostUpdate Exception: %s" % e)
-        out('')
+        out(x.AsDict())
+        out('\n\n\n')
         count += 1
         if count == limit:
             exit(0)
@@ -109,7 +84,7 @@ def filter_search(text, term, blacklist):
 def parse_args():
     import argparse
     parser = argparse.ArgumentParser(
-        description="That's Ocho!",
+        description="You are winner HAHAHA",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
 
