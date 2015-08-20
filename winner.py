@@ -28,7 +28,7 @@ def main():
 
     def update_queue():
         # Setup and start the threading
-        u = Timer(60.0, update_queue)
+        u = Timer(60.0 * 5.0, update_queue)
         u.daemon = True
         u.start()
 
@@ -48,7 +48,7 @@ def main():
 
     def scan_for_contests():
         # Setup and start the threading
-        v = Timer(20.0, scan_for_contests)
+        v = Timer(60.0 * 10.0, scan_for_contests)
         v.daemon = True
         v.start()
 

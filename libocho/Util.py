@@ -7,8 +7,14 @@ from sys import (
 
 
 def out(msg):
-    print >> stdout, msg
+    try:
+        print >> stdout, msg
+    except Exception as e:
+        err("[out] Could Not Print: %s" % e)
 
 
 def err(msg):
-    print >> stderr, msg
+    try:
+        print >> stderr, msg
+    except Exception as e:
+        print >> stderr, ("[err] Coult Not Print: %s" % e)

@@ -2,3 +2,4 @@ config.cfg
 debug.log
 deploy.log
 *.pyc
+screenlog.0
