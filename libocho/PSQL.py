@@ -59,3 +59,108 @@ class PSQL:
             'database': config.get('PSQL', 'database', 0)
         }
         return result
+
+
+    def get_last_twitter_id(self):
+        last_twitter_id = 0
+
+        result = self.session.execute(
+            """
+            SELECT
+                last_twitter_id
+            FROM
+                info
+            """
+        ).fetchone()
+
+        if result is not None:
+            last_twitter_id = result[0]
+
+        return last_twitter_id
+
+
+    def set_last_twitter_id(self, last_twitter_id):
+        self.session.execute(
+            """
+            UPDATE
+                info
+            SET
+                last_twitter_id = '%s'
+            """ % (last_twitter_id)
+        )
+        self.session.commit()
+
+
+    def get_follower_count(self):
+        follower_count = 0
+
+        result = self.session.execute(
+            """
+            SELECT
+                count(*)
+            FROM
+                followers
+            """
+        ).fetchone()
+
+        if result is not None:
+            follower_count = result[0]
+
+        return follower_count
+
+
+    def get_oldest_follower(self):
+        oldest_follower = None
+
+        result = self.session.execute(
+            """
+            SELECT
+                username
+            FROM
+                followers
+            ORDER BY
+                gid ASC
+            LIMIT 1
+            """
+        ).fetchone()
+
+        if result is not None:
+            oldest_follower = result[0]
+
+        return oldest_follower
+
+
+    def add_new_follower(self, new_follower):
+        self.session.execute(
+            """
+            INSERT INTO
+                followers (username)
+            VALUES
+                ('%s')
+            """ % (new_follower)
+        )
+        self.session.commit()
+
+
+    def add_contest(self, post_id, post_text, username, followed, favourited):
+        self.session.execute(
+            """
+            INSERT INTO
+                contests (post_id, post_Text, username, followed, favourited)
+            VALUES
+                ('%s', '%s', '%s', '%s', '%s')
+            """ % (post_id, post_text, username, followed, favourited)
+        )
+        self.session.commit()
+
+    def add_activity_log(self, activity, post_id):
+        self.session.execute(
+            """
+            INSERT INTO
+                activity_log (activity, post_id)
+            VALUES
+                ('%s', '%s')
+            """ % (activity, post_id)
+        )
+        self.session.commit()
+

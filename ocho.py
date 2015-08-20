@@ -34,6 +34,10 @@ def main():
         eight = []
         ocho = []
 
+    out(eight[0].AsDict())
+
+    exit(0)
+
     matches = []
     for x in eight:
         text = x.AsDict()['text']
