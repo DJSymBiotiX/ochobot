@@ -8,7 +8,8 @@ from libocho.Util import (
 )
 from sys import exit
 
-import threading import time
+import threading
+import time
 
 def main():
     args = parse_args()
@@ -19,9 +20,11 @@ def main():
 
     contests = []
 
+    out('Ahh')
+
     def update_queue():
         # Setup and start the threading
-        u = threading.Timer(10.0, update_queue)
+        u = threading.Timer(3, update_queue)
         u.daemon = True
         u.start()
 
@@ -35,11 +38,12 @@ def main():
 
             contests.pop(0)
 
+
     def scan_for_contests():
         # Setup and start the threading
-        u = threading.Timer(20.0, scan_for_contests)
-        u.daemon = True
-        u.start()
+        v = threading.Timer(10.0, scan_for_contests)
+        v.daemon = True
+        v.start()
 
         out("Scanning For Contests...")
         last_twitter_id = p.get_last_twitter_id()
@@ -59,12 +63,20 @@ def main():
         except Exception as e:
             err("[scan_for_contests] Search Error: %s" % e)
 
+    out('bahh')
 
-    while 1:
-        try:
+    scan_for_contests()
+    update_queue()
+
+    out('shamon')
+
+    try:
+        while 1:
             time.sleep(1)
-        except KeyboardInterrupt as e:
-            out("Closing...")
+    except KeyboardInterrupt as e:
+        out("Closing...")
+
+    out('rekt')
 
     exit(0)
 
@@ -83,7 +95,7 @@ def retweet_post(item, twitter, psql, followed, favourited):
         't' if followed else 'f',
         't' if favourited else 'f'
     )
-    psql.add_activity("Retweeted Post", item['id'])
+    psql.add_activity_log("Retweeted Post", item['id'])
 
 
 def check_for_follow_request(item, twitter, psql):
@@ -114,13 +126,13 @@ def check_for_follow_request(item, twitter, psql):
             )
 
         # Follow the new guy
-#        try:
-#            new_follower = item['retweeted_status']['user']['screen_name']
+        try:
+            new_follower = item['retweeted_status']['user']['screen_name']
 #            twitter.api.CreateFriendship(
 #                screen_name=new_follower
 #            )
-#        except Exception as e:
-#            new_follower = item['user']['screen_name']
+        except Exception as e:
+            new_follower = item['user']['screen_name']
 #            twitter.api.CreateFriendship(
 #                screen_name=new_follower
 #            )

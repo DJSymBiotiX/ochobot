@@ -146,10 +146,17 @@ class PSQL:
         self.session.execute(
             """
             INSERT INTO
-                contests (post_id, post_Text, username, followed, favourited)
+                contests (post_id, post_text, username, followed, favourited)
             VALUES
-                ('%s', '%s', '%s', '%s', '%s')
-            """ % (post_id, post_text, username, followed, favourited)
+                (:pid, :ptext, :uname, :fld, :fvd)
+            """,
+            {
+                'pid': post_id,
+                'ptext': post_text,
+                'uname': username,
+                'fld': followed,
+                'fvd': favourited
+            }
         )
         self.session.commit()
 
