@@ -7,9 +7,11 @@ from libocho.Util import (
     err
 )
 from sys import exit
-
-import threading
-import time
+from threading import (
+    Timer,
+    Lock
+)
+from time import sleep
 
 def main():
     args = parse_args()
@@ -18,65 +20,68 @@ def main():
     t = Twitter(args.configPath)
     p = PSQL(args.configPath)
 
+    # Contests Queue
     contests = []
 
-    out('Ahh')
+    # Create Mutex Lock
+    mutex = Lock()
 
     def update_queue():
         # Setup and start the threading
-        u = threading.Timer(3, update_queue)
+        u = Timer(3, update_queue)
         u.daemon = True
         u.start()
 
-        if len(contests) > 0:
-            contest = contests[0]
-            out("Contest: %s" % contest['text'])
+        mutex.acquire()
+        try:
+            if len(contests) > 0:
+                contest = contests[0]
+                out("Contest: %s" % contest['text'])
 
-            followed = check_for_follow_request(contest, t, p)
-            favourited = check_for_favourite_request(contest, t, p)
-            retweet_post(contest, t, p, followed, favourited)
+                followed = check_for_follow_request(contest, t, p)
+                favourited = check_for_favourite_request(contest, t, p)
+                retweet_post(contest, t, p, followed, favourited)
 
-            contests.pop(0)
-
+                contests.pop(0)
+        finally:
+            mutex.release()
 
     def scan_for_contests():
         # Setup and start the threading
-        v = threading.Timer(10.0, scan_for_contests)
+        v = Timer(10.0, scan_for_contests)
         v.daemon = True
         v.start()
 
-        out("Scanning For Contests...")
-        last_twitter_id = p.get_last_twitter_id()
-
+        mutex.acquire()
         try:
-            results = t.api.GetSearch(
-                term="RT to win",
-                since_id=last_twitter_id
-            )
+            out("Scanning For Contests...")
+            last_twitter_id = p.get_last_twitter_id()
 
-            for status in results:
-                item = status.AsDict()
-                if item['retweet_count'] > 0:
-                    if item['id'] > last_twitter_id:
-                        p.set_last_twitter_id(item['id'])
-                        contests.append(item)
-        except Exception as e:
-            err("[scan_for_contests] Search Error: %s" % e)
+            try:
+                results = t.api.GetSearch(
+                    term="RT to win",
+                    since_id=last_twitter_id
+                )
 
-    out('bahh')
+                for status in results:
+                    item = status.AsDict()
+                    if 'retweet_count' in item and item['retweet_count'] > 0:
+                        if item['id'] > last_twitter_id:
+                            p.set_last_twitter_id(item['id'])
+                            contests.append(item)
+            except Exception as e:
+                err("[scan_for_contests] Search Error: %s" % e)
+        finally:
+            mutex.release()
 
     scan_for_contests()
     update_queue()
 
-    out('shamon')
-
     try:
         while 1:
-            time.sleep(1)
+            sleep(1)
     except KeyboardInterrupt as e:
         out("Closing...")
-
-    out('rekt')
 
     exit(0)
 
