@@ -85,8 +85,8 @@ class PSQL:
             UPDATE
                 info
             SET
-                last_twitter_id = '%s'
-            """ % (last_twitter_id)
+                last_twitter_id = :last_twitter_id
+            """, { 'last_twitter_id': last_twitter_id }
         )
         self.session.commit()
 
@@ -100,6 +100,8 @@ class PSQL:
                 count(*)
             FROM
                 followers
+            WHERE
+                active
             """
         ).fetchone()
 
@@ -118,6 +120,8 @@ class PSQL:
                 username
             FROM
                 followers
+            WHERE
+                active
             ORDER BY
                 gid ASC
             LIMIT 1
@@ -130,16 +134,84 @@ class PSQL:
         return oldest_follower
 
 
-    def add_new_follower(self, new_follower):
+    def follow_user(self, new_follower):
+        # Make sure we're not already following that user
+        result = self.session.execute(
+            """
+            SELECT
+                true
+            FROM
+                followers
+            WHERE
+                username = :username
+                AND
+                active
+            """,
+            { 'username': new_follower }
+        ).fetchone()
+
+        if result is None:
+            self.session.execute(
+                """
+                INSERT INTO
+                    followers (username)
+                VALUES
+                    (:username)
+                """, { 'username': new_follower}
+            )
+            self.session.commit()
+
+
+    def unfollow_user(self, old_follower):
         self.session.execute(
             """
-            INSERT INTO
-                followers (username)
-            VALUES
-                ('%s')
-            """ % (new_follower)
+            UPDATE
+                followers
+            SET
+                active = 'f',
+                unfollow_time = now()
+            WHERE
+                username = :username
+            """,
+            { 'username': old_follower }
         )
         self.session.commit()
+
+
+    def check_favourite(self, post_id):
+        result = self.session.execute(
+            """
+            SELECT
+                true
+            FROM
+                contests
+            WHERE
+                post_id = :post_id
+                AND
+                favourited = 't'
+            """, { 'post_id': post_id }
+        ).fetchone()
+
+        if result is None:
+            return True
+        return False
+
+
+    def check_contest(self, post_id):
+        result = self.session.execute(
+            """
+            SELECT
+                true
+            FROM
+                contests
+            WHERE
+                post_id = :post_id
+            """, { 'post_id': post_id }
+        )
+
+        if result is None:
+            return True
+        return False
 
 
     def add_contest(self, post_id, post_text, username, followed, favourited):
@@ -148,26 +220,14 @@ class PSQL:
             INSERT INTO
                 contests (post_id, post_text, username, followed, favourited)
             VALUES
-                (:pid, :ptext, :uname, :fld, :fvd)
+                (:post_id, :post_text, :username, :followed, :favourited)
             """,
             {
-                'pid': post_id,
-                'ptext': post_text,
-                'uname': username,
-                'fld': followed,
-                'fvd': favourited
+                'post_id': post_id,
+                'post_text': post_text,
+                'username': username,
+                'followed': followed,
+                'favourited': favourited
             }
         )
         self.session.commit()
-
-    def add_activity_log(self, activity, post_id):
-        self.session.execute(
-            """
-            INSERT INTO
-                activity_log (activity, post_id)
-            VALUES
-                ('%s', '%s')
-            """ % (activity, post_id)
-        )
-        self.session.commit()
-
