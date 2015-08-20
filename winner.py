@@ -28,7 +28,7 @@ def main():
 
     def update_queue():
         # Setup and start the threading
-        u = Timer(3, update_queue)
+        u = Timer(60.0, update_queue)
         u.daemon = True
         u.start()
 
@@ -48,7 +48,7 @@ def main():
 
     def scan_for_contests():
         # Setup and start the threading
-        v = Timer(10.0, scan_for_contests)
+        v = Timer(20.0, scan_for_contests)
         v.daemon = True
         v.start()
 
@@ -91,17 +91,23 @@ def retweet_post(item, twitter, psql, followed, favourited):
     out("Retweeting...")
 
     # Check if we have already retweeted this post
+    retweeted = False
     try:
         tweet_id = item['retweeted_status']['id']
+        if not psql.check_contest(tweet_id):
+            retweeted = True
+            twitter.api.PostRetweet(tweet_id)
     except Exception as e:
-        tweet_id = item['id']
+        retweeted = False
+        try:
+            tweet_id = item['id']
+            if not psql.check_contest(tweet_id):
+                retweeted = True
+                twitter.api.PostRetweet(item['id'])
+        except Exception as e:
+            retweeted = False
 
-    if not psql.check_contest(tweet_id):
-    #    try:
-    #        twitter.api.PostRetweet(item['retweeted_status']['id'])
-    #    except Exception as e:
-    #        twitter.api.PostRetweet(item['id'])
-
+    if retweeted:
         psql.add_contest(
             tweet_id,
             item['text'],
@@ -125,28 +131,28 @@ def check_for_follow_request(item, twitter, psql):
 
         # Unfollow oldest follower if our follower count is >= 1900
         follower_count = psql.get_follower_count()
-        if follower_count >= 5:
+        if follower_count >= 1900:
             oldest_follower = psql.get_oldest_follower()
             out("Too many followers: Unfollowing %s" % oldest_follower)
 
             # Unfollow that nerd
-#            twitter.api.DestroyFriendship(
-#                screen_name=oldest_follower
-#            )
+            twitter.api.DestroyFriendship(
+                screen_name=oldest_follower
+            )
             psql.unfollow_user(oldest_follower)
 
 
         # Follow the new guy
         try:
             new_follower = item['retweeted_status']['user']['screen_name']
-#            twitter.api.CreateFriendship(
-#                screen_name=new_follower
-#            )
+            twitter.api.CreateFriendship(
+                screen_name=new_follower
+            )
         except Exception as e:
             new_follower = item['user']['screen_name']
-#            twitter.api.CreateFriendship(
-#                screen_name=new_follower
-#            )
+            twitter.api.CreateFriendship(
+                screen_name=new_follower
+            )
 
         # Add follower to db
         psql.follow_user(new_follower)
@@ -168,13 +174,14 @@ def check_for_favourite_request(item, twitter, psql):
         # Check if we have already favourited
         if not psql.check_favourite(item['id']):
             favourited = True
-    #        try:
-    #            twitter.api.CreateFavorite(
-    #                id=item['retweeted_status']['user']['id']
-    #            )
-    #        except Exception as e:
-    #            twitter.api.CreateFavorite(
-    #                id=item['id']
+            try:
+                twitter.api.CreateFavorite(
+                    id=item['retweeted_status']['user']['id']
+                )
+            except Exception as e:
+                twitter.api.CreateFavorite(
+                    id=item['id']
+                )
 
     return favourited
 
