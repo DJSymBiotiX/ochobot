@@ -1,4 +1,4 @@
-config.cfg
+config.json
 debug.log
 deploy.log
 *.pyc

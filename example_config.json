@@ -1,0 +1,27 @@
+{
+    "twitter": {
+        "consumer_key": "",
+        "consumer_secret": "",
+        "access_token_key": "",
+        "access_token_secret": ""
+    },
+    "psql": {
+        "database": "",
+        "username": "",
+        "password": "",
+        "host": "localhost",
+        "port": 5432
+    },
+    "settings": {
+        "phrase": "\"RT to win\"",
+        "max_followers": 1900,
+        "search": {
+            "base_time": 60.0,
+            "fuzz_time": 20.0
+        },
+        "retweet": {
+            "base_time": 120.0,
+            "fuzz_time": 30.0
+        }
+    }
+}

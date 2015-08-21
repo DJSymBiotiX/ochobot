@@ -4,7 +4,8 @@ from libocho.Twitter import Twitter
 from libocho.PSQL import PSQL
 from libocho.Util import (
     out,
-    err
+    err,
+    read_json_config
 )
 from sys import exit
 from threading import (
@@ -13,12 +14,27 @@ from threading import (
 )
 from time import sleep
 
+import random
+
+# Globals
+debug = False
+
+
 def main():
     args = parse_args()
 
-    # t = Twitter API, p = PSQL Helper Functions
-    t = Twitter(args.configPath)
-    p = PSQL(args.configPath)
+    try:
+        config = read_json_config(args.configPath)
+        t = Twitter(config['twitter'])
+        p = PSQL(config['psql'])
+        s = config['settings']
+    except Exception as e:
+        err(e)
+        exit(1)
+
+    # Set up debug
+    global debug
+    debug = args.debug
 
     # Contests Queue
     contests = []
@@ -27,8 +43,13 @@ def main():
     mutex = Lock()
 
     def update_queue():
+        time = get_fuzzed_time(s['retweet']['base'], s['retweet']['fuzz'])
+        minutes, seconds = divmod(time, 60)
+        hours, minutes = divmod(minutes, 60)
+        out("update_queue random time: %sh%sm" % (int(hours), int(minutes)))
+
         # Setup and start the threading
-        u = Timer(60.0 * 5.0, update_queue)
+        u = Timer(time, update_queue)
         u.daemon = True
         u.start()
 
@@ -38,17 +59,22 @@ def main():
                 contest = contests[0]
                 out("Contest: %s" % contest['text'])
 
-                followed = check_for_follow_request(contest, t, p)
-                favourited = check_for_favourite_request(contest, t, p)
-                retweet_post(contest, t, p, followed, favourited)
+                followed = check_for_follow_request(contest, t, p, s)
+                favourited = check_for_favourite_request(contest, t, p, s)
+                retweet_post(contest, t, p, s, followed, favourited)
 
                 contests.pop(0)
         finally:
             mutex.release()
 
     def scan_for_contests():
+        time = get_fuzzed_time(s['search']['base'], s['search']['fuzz'])
+        minutes, seconds = divmod(time, 60)
+        hours, minutes = divmod(minutes, 60)
+        out("scan_for_contests random time: %sh%sm" % (int(hours), int(minutes)))
+
         # Setup and start the threading
-        v = Timer(60.0 * 10.0, scan_for_contests)
+        v = Timer(time, scan_for_contests)
         v.daemon = True
         v.start()
 
@@ -87,7 +113,14 @@ def main():
     exit(0)
 
 
-def retweet_post(item, twitter, psql, followed, favourited):
+def get_fuzzed_time(base, fuzz):
+    base_time = 60.0 * base
+    fuzz_time = 60.0 * random.randrange(-1 * fuzz, fuzz)
+
+    return base_time + fuzz_time
+
+
+def retweet_post(item, twitter, psql, settings, followed, favourited):
     out("Retweeting...")
 
     # Check if we have already retweeted this post
@@ -96,28 +129,31 @@ def retweet_post(item, twitter, psql, followed, favourited):
         tweet_id = item['retweeted_status']['id']
         if not psql.check_contest(tweet_id):
             retweeted = True
-            twitter.api.PostRetweet(tweet_id)
+            if not debug:
+                twitter.api.PostRetweet(tweet_id)
     except Exception as e:
         retweeted = False
         try:
             tweet_id = item['id']
             if not psql.check_contest(tweet_id):
                 retweeted = True
-                twitter.api.PostRetweet(item['id'])
+                if not debug:
+                    twitter.api.PostRetweet(tweet_id)
         except Exception as e:
             retweeted = False
 
     if retweeted:
-        psql.add_contest(
-            tweet_id,
-            item['text'],
-            item['user']['screen_name'],
-            followed,
-            favourited
-        )
+        if not debug:
+            psql.add_contest(
+                tweet_id,
+                item['text'],
+                item['user']['screen_name'],
+                followed,
+                favourited
+            )
 
 
-def check_for_follow_request(item, twitter, psql):
+def check_for_follow_request(item, twitter, psql, settings):
     """
     Check if a post requires you to follow the user.
     Be careful with this function! Twitter may write ban your application for
@@ -131,35 +167,36 @@ def check_for_follow_request(item, twitter, psql):
 
         # Unfollow oldest follower if our follower count is >= 1900
         follower_count = psql.get_follower_count()
-        if follower_count >= 1900:
+        if follower_count >= settings['max_followers']:
             oldest_follower = psql.get_oldest_follower()
             out("Too many followers: Unfollowing %s" % oldest_follower)
 
             # Unfollow that nerd
-            twitter.api.DestroyFriendship(
-                screen_name=oldest_follower
-            )
-            psql.unfollow_user(oldest_follower)
+            if not debug:
+                twitter.api.DestroyFriendship(
+                    screen_name=oldest_follower
+                )
+                psql.unfollow_user(oldest_follower)
 
+        if not debug:
+            # Follow the new guy
+            try:
+                new_follower = item['retweeted_status']['user']['screen_name']
+                twitter.api.CreateFriendship(
+                    screen_name=new_follower
+                )
+            except Exception as e:
+                new_follower = item['user']['screen_name']
+                twitter.api.CreateFriendship(
+                    screen_name=new_follower
+                )
 
-        # Follow the new guy
-        try:
-            new_follower = item['retweeted_status']['user']['screen_name']
-            twitter.api.CreateFriendship(
-                screen_name=new_follower
-            )
-        except Exception as e:
-            new_follower = item['user']['screen_name']
-            twitter.api.CreateFriendship(
-                screen_name=new_follower
-            )
-
-        # Add follower to db
-        psql.follow_user(new_follower)
+            # Add follower to db
+            psql.follow_user(new_follower)
     return followed
 
 
-def check_for_favourite_request(item, twitter, psql):
+def check_for_favourite_request(item, twitter, psql, settings):
     """
     Check if a post requires you to favourite the tweet.
     Be careful with this function! Twitter may write ban your application for
@@ -174,14 +211,15 @@ def check_for_favourite_request(item, twitter, psql):
         # Check if we have already favourited
         if not psql.check_favourite(item['id']):
             favourited = True
-            try:
-                twitter.api.CreateFavorite(
-                    id=item['retweeted_status']['user']['id']
-                )
-            except Exception as e:
-                twitter.api.CreateFavorite(
-                    id=item['id']
-                )
+            if not debug:
+                try:
+                    twitter.api.CreateFavorite(
+                        id=item['retweeted_status']['user']['id']
+                    )
+                except Exception as e:
+                    twitter.api.CreateFavorite(
+                        id=item['id']
+                    )
 
     return favourited
 
@@ -197,6 +235,11 @@ def parse_args():
         'configPath',
         type=str,
         help="Path to config file"
+    )
+    parser.add_argument(
+        '-d', '--debug',
+        action="store_true",
+        help="do not retweet, favourite, or follow when on"
     )
 
     return parser.parse_args()

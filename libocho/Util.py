@@ -7,6 +7,20 @@ from sys import (
 
 from datetime import datetime
 
+def read_json_config(config_path):
+    try:
+        import json
+    except ImportError:
+        import simplejson as json
+
+    try:
+        with open(config_path, 'rb') as f:
+            data = json.load(f)
+            return data
+    except Exception as e:
+        raise e
+    return {}
+
 
 def out(msg):
     try:
