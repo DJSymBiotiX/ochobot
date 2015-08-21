@@ -124,17 +124,20 @@ def main():
             out("Making random post...")
             text = None
             try:
+                # Choose random user from list
+                users= s['post']['users']
+                user = users[random.randrange(0, len(users))]
                 results = t.api.GetUserTimeline(
-                    screen_name=s['post']['user'],
+                    screen_name=user,
                     count='200',
                     exclude_replies=True,
-                    include_rts=False
+                    include_rts=True
                 )
 
                 # Pick a random status from this list
                 status = results[random.randrange(0, len(results))]
                 text = status.AsDict()['text']
-                out("Random status: %s" % text)
+                out("Random status from %s: %s" % (user, text))
             except Exception as e:
                 err("[make_post] Search Error: %s" % e)
 
