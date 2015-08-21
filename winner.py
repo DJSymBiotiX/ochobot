@@ -105,8 +105,53 @@ def main():
         finally:
             mutex.release()
 
+
+    def make_post():
+        time = get_fuzzed_time(s['post']['base'], s['post']['fuzz'])
+        minutes, seconds = divmod(time, 60)
+        hours, minutes = divmod(minutes, 60)
+        out("make_post random time: %sh%sm%ss" % (
+            int(hours), int(minutes), int(seconds)
+        ))
+
+        # Setup and start the threading
+        x = Timer(time, make_post)
+        x.daemon = True
+        x.start()
+
+        mutex.acquire()
+        try:
+            out("Making random post...")
+            text = None
+            try:
+                results = t.api.GetUserTimeline(
+                    screen_name=s['post']['user'],
+                    count='200',
+                    exclude_replies=True,
+                    include_rts=False
+                )
+
+                # Pick a random status from this list
+                status = results[random.randrange(0, len(results))]
+                text = status.AsDict()['text']
+                out("Random status: %s" % text)
+            except Exception as e:
+                err("[make_post] Search Error: %s" % e)
+
+            try:
+                if text is not None:
+                    if not debug:
+                        t.api.PostUpdate(
+                            status=text
+                        )
+            except Exception as e:
+                err("[make_post] Post Error: %s" % e)
+        finally:
+            mutex.release()
+
     scan_for_contests()
     update_queue()
+    make_post()
 
     try:
         while 1:
@@ -119,7 +164,7 @@ def main():
 
 def get_fuzzed_time(base, fuzz):
     base_time = 60.0 * base
-    fuzz_time = random.randrange(-1 * (60 * fuzz), (60 * fuzz))
+    fuzz_time = random.randrange(-1 * int((60 * fuzz)), int((60 * fuzz)))
 
     return base_time + fuzz_time
 
