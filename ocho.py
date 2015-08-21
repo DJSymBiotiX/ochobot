@@ -3,7 +3,8 @@
 from libocho.Twitter import Twitter
 from libocho.Util import (
     out,
-    err
+    err,
+    read_json_config
 )
 from sys import exit
 
@@ -14,7 +15,12 @@ def main():
 
     limit = 1
 
-    t = Twitter(args.configPath)
+    try:
+        config = read_json_config(args.configPath)
+        t = Twitter(config['twitter'])
+    except Exception as e:
+        err(e)
+        exit (1)
 
     try:
         eight = t.api.GetSearch(
@@ -33,10 +39,6 @@ def main():
         err("[Main] Search Failure: %s" % e)
         eight = []
         ocho = []
-
-    out(eight[0].AsDict())
-
-    exit(0)
 
     matches = []
     for x in eight:
