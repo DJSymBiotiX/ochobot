@@ -1,5 +1,5 @@
 #!/bin/sh
 
-./winner.py config.cfg
+./winner.py config.json
 
 exit 0
