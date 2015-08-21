@@ -46,7 +46,9 @@ def main():
         time = get_fuzzed_time(s['retweet']['base'], s['retweet']['fuzz'])
         minutes, seconds = divmod(time, 60)
         hours, minutes = divmod(minutes, 60)
-        out("update_queue random time: %sh%sm" % (int(hours), int(minutes)))
+        out("update_queue random time: %sh%sm%ss" % (
+            int(hours), int(minutes), int(seconds)
+        ))
 
         # Setup and start the threading
         u = Timer(time, update_queue)
@@ -71,7 +73,9 @@ def main():
         time = get_fuzzed_time(s['search']['base'], s['search']['fuzz'])
         minutes, seconds = divmod(time, 60)
         hours, minutes = divmod(minutes, 60)
-        out("scan_for_contests random time: %sh%sm" % (int(hours), int(minutes)))
+        out("scan_for_contests random time: %sh%sm%ss" % (
+            int(hours), int(minutes), int(seconds)
+        ))
 
         # Setup and start the threading
         v = Timer(time, scan_for_contests)
@@ -115,7 +119,7 @@ def main():
 
 def get_fuzzed_time(base, fuzz):
     base_time = 60.0 * base
-    fuzz_time = 60.0 * random.randrange(-1 * fuzz, fuzz)
+    fuzz_time = random.randrange(-1 * (60 * fuzz), (60 * fuzz))
 
     return base_time + fuzz_time
 
