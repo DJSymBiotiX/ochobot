@@ -5,10 +5,12 @@ from sys import (
     stderr
 )
 
+from datetime import datetime
+
 
 def out(msg):
     try:
-        print >> stdout, msg
+        print >> stdout, "%s: %s" % (datetime.now(), msg)
     except Exception as e:
         err("[out] Could Not Print: %s" % e)
 
