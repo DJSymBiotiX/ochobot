@@ -2,4 +2,4 @@ config.json
 debug.log
 deploy.log
 *.pyc
-screenlog.0
+*screenlog.0
