@@ -20,7 +20,7 @@ def main():
     args = parse_args()
     dry_run = args.dry_run
 
-    usedpath = 'whitehout_posted.txt'
+    usedpath = 'whitehout_lastused.txt'
 
     out('Checking For #WPGWhitehout....')
 
@@ -32,6 +32,26 @@ def main():
     except Exception as e:
         err(e)
         exit(1)
+
+    phrases = [
+        'I think you mean #WPGWhiteout',
+        "Are you sure it's #WPGWhitehout and not #WPGWhiteout?",
+        (
+            'Looks like an "h" snuck its way in that hashtag. '
+            'I think you mean #WPGWhiteout'
+        ),
+        'Let me just fix that up for you :) #WPGWhiteout not #WPGWhitehout',
+        "What's a Hout? Did you mean #WPGWhiteout?",
+        (
+            "There's an H in Nashville but not one in Winnipeg, "
+            "so don't use it in the hashtag. #WPGWhiteout"
+        ),
+        '#WPGWhitehout is wrong. #WPGWhiteout is right',
+        (
+            '#WPGWhitehout supports the Houts, #WPGWhiteout supports the '
+            'Jets. Notice the logo!'
+        )
+    ]
 
     # Create Mutex Lock
     mutex = Lock()
@@ -54,7 +74,7 @@ def main():
             try:
                 wpgwhitehout = t.api.GetSearch(
                     term='#WPGWhitehout',
-                    count=10,
+                    count=30,
                     result_type='recent',
                     lang='en'
                 )
@@ -65,13 +85,16 @@ def main():
             matches = []
             for x in wpgwhitehout:
                 text = x.AsDict()['text']
-                if text.lower()[0:2] != 'rt':
+                if (
+                    text.lower()[0:2] != 'rt' and
+                    x.user.screen_name != 'wpgwhitehout'
+                ):
                     matches.append(x)
 
-            used_ids = []
+            used_id = -1
             with open(usedpath, 'r') as f:
-                for line in f:
-                    used_ids.append(int(line.strip()))
+                # There should only be one line
+                used_id = int(f.read().strip())
 
             count = 0
             for x in matches:
@@ -80,20 +103,21 @@ def main():
                 screen_name = x.user.AsDict()['screen_name']
 
                 try:
-                    if status_id in used_ids:
+                    print status_id
+                    print used_id
+                    if status_id <= used_id:
                         continue
-                    out("That's WPGWhitehout")
                     out(text)
-                    if dry_run:
-                        out('@%s I think you mean #WPGWhiteout' % screen_name)
-                    else:
+                    response = '@%s %s' % (screen_name, random.choice(phrases))
+                    out('Response: %s' % response)
+                    if not dry_run:
                         t.api.PostUpdate(
-                            '@%s I think you mean #WPGWhiteout' % screen_name,
+                            response,
                             in_reply_to_status_id=status_id
                         )
                         # Write used id to file
-                        with open(usedpath, 'a') as f:
-                            f.write('%s\n' % status_id)
+                        with open(usedpath, 'w') as f:
+                            f.write('%s' % status_id)
 
                 except Exception, e:
                     err('PostUpdate Exception: %s' % e)

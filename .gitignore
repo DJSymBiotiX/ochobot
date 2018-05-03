@@ -1,6 +1,7 @@
 env/
 whitehout_config.json
 whitehout_posted.txt
+whitehout_lastused.txt
 config.json
 debug.log
 deploy.log
